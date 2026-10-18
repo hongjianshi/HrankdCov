@@ -1,0 +1,40 @@
+Package: HrankdCov
+Type: Package
+Title: Distribution-Free Tests of Multivariate Independence via
+    Center-Outward Ranks
+Version: 0.1.0
+Authors@R: 
+    person("Hongjian", "Shi", , "hongjian.shi@tum.de", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0001-5552-2082"))
+Description: Computes the center-outward ranks and signs of Hallin, del
+    Barrio, Cuesta-Albertos and Matrán (2021) <doi:10.1214/20-AOS1996>,
+    obtained by optimally assigning the data to a regular grid in the unit
+    ball, and uses them to test independence between two random vectors
+    of arbitrary dimensions.  The test statistic is the distance
+    covariance of (scored) center-outward ranks, as proposed by Shi, Drton
+    and Han (2022) <doi:10.1080/01621459.2020.1782223> and Shi, Hallin,
+    Drton and Han (2022) <doi:10.1214/21-AOS2151>.  The resulting tests are
+    consistent and fully distribution-free.  P-values are computed from
+    the exact (permutation) null distribution, which does not depend on
+    the data-generating distribution and can be reused across tests, or
+    from the limiting weighted chi-square distribution.
+License: GPL (>= 3)
+URL: https://github.com/hongjianshi/HrankdCov
+BugReports: https://github.com/hongjianshi/HrankdCov/issues
+Depends: 
+    R (>= 4.0.0)
+Imports: 
+    graphics,
+    grDevices,
+    stats
+Suggests: 
+    clue,
+    energy,
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Config/roxygen2/version: 8.0.0

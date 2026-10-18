@@ -1,0 +1,38 @@
+bibentry(
+  bibtype = "Article",
+  header = "To cite the center-outward rank distance covariance test, please use:",
+  title = "Distribution-Free Consistent Independence Tests via Center-Outward Ranks and Signs",
+  author = c(person("Hongjian", "Shi"), person("Mathias", "Drton"), person("Fang", "Han")),
+  journal = "Journal of the American Statistical Association",
+  year = "2022",
+  volume = "117",
+  number = "537",
+  pages = "395--410",
+  doi = "10.1080/01621459.2020.1782223",
+  textVersion = paste(
+    "Shi, H., Drton, M. and Han, F. (2022).",
+    "Distribution-free consistent independence tests via center-outward ranks and signs.",
+    "Journal of the American Statistical Association, 117(537), 395-410.",
+    "doi:10.1080/01621459.2020.1782223"
+  )
+)
+
+bibentry(
+  bibtype = "Article",
+  header = "For score functions and the general theory, please also cite:",
+  title = "On Universally Consistent and Fully Distribution-Free Rank Tests of Vector Independence",
+  author = c(person("Hongjian", "Shi"), person("Marc", "Hallin"), person("Mathias", "Drton"),
+             person("Fang", "Han")),
+  journal = "The Annals of Statistics",
+  year = "2022",
+  volume = "50",
+  number = "4",
+  pages = "1933--1959",
+  doi = "10.1214/21-AOS2151",
+  textVersion = paste(
+    "Shi, H., Hallin, M., Drton, M. and Han, F. (2022).",
+    "On universally consistent and fully distribution-free rank tests of vector independence.",
+    "The Annals of Statistics, 50(4), 1933-1959.",
+    "doi:10.1214/21-AOS2151"
+  )
+)

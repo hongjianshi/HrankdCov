@@ -1,0 +1,202 @@
+---
+title: "Distribution-free independence tests with center-outward ranks"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Distribution-free independence tests with center-outward ranks}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 5, fig.height = 5)
+```
+
+```{r setup}
+library(HrankdCov)
+```
+
+## Motivation
+
+Given an i.i.d. sample $(X_1, Y_1), \dots, (X_n, Y_n)$ of a pair of random
+vectors $X \in \mathbb{R}^p$ and $Y \in \mathbb{R}^q$, we want to test
+$H_0$: $X$ and $Y$ are independent.
+
+* The distance covariance test (Székely, Rizzo and Bakirov, 2007) is
+  consistent against all alternatives with finite first moments, but its
+  null distribution depends on the unknown distributions of $X$ and $Y$, so
+  that it requires permutation, and its power can suffer under heavy tails.
+* For $p = q = 1$, applying a dependence measure to ranks gives tests that
+  are *distribution-free*: the null distribution is the same for all
+  continuous distributions.  Applying univariate ranks coordinate by
+  coordinate does not achieve this when $p > 1$ or $q > 1$, because the
+  joint distribution of the coordinatewise ranks of $X$ still depends on the
+  dependence among the coordinates of $X$.
+
+Center-outward ranks and signs (Hallin, del Barrio, Cuesta-Albertos and
+Matrán, 2021) solve this problem.  Combining them with distance covariance
+gives tests that are both distribution-free and consistent (Shi, Drton and
+Han, 2022), and with score functions efficient ones (Shi, Hallin, Drton and
+Han, 2022).  This package implements these tests.
+
+## Center-outward ranks
+
+The sample is matched to a grid of $n$ points in the unit ball by the
+assignment that minimizes the total squared distance between the data and
+the grid points.  The grid consists of $n_R$ spheres with radii
+$1/(n_R+1), \dots, n_R/(n_R+1)$ intersected with $n_S$ rays, plus $n_0$
+points close to the origin, where $n = n_R n_S + n_0$.  The grid is
+symmetric about the origin: the rays come in antipodal pairs, and the extra
+points are antipodal pairs at radius $1/(2(n_R+1))$, plus the origin when
+$n_0$ is odd.
+
+```{r grid}
+g <- co_grid(300, 2)
+attributes(g)[c("n_R", "n_S", "n_0")]
+```
+
+The matched grid point $F_\pm^{(n)}(X_i)$ is the value of the empirical
+center-outward distribution function at $X_i$.  Its distance to the origin
+gives the *center-outward rank* $R_\pm^{(n)}(X_i) = (n_R + 1)\|F_\pm^{(n)}(X_i)\|$
+and its direction the *center-outward sign* $S_\pm^{(n)}(X_i)$.
+
+```{r ranks}
+set.seed(1)
+n <- 300
+z <- rnorm(n)
+x <- cbind(z, z^2 + rnorm(n, sd = 0.5))   # a banana-shaped distribution
+r <- co_ranks(x, n_R = 6)
+r
+```
+
+Coloring the observations by their rank shows the empirical center-outward
+quantile contours, which adapt to the shape of the distribution:
+
+```{r ranks-plot}
+plot(r, main = "Center-outward ranks")
+```
+
+In dimension one, center-outward ranks are the usual ranks folded at the
+median: they measure how far an observation lies from the center.
+
+```{r ranks-1d}
+z <- c(2.3, -0.4, 0.1, 5.0, -1.2)
+co_ranks(z)$F[, 1]
+co_ranks(z)$rank
+```
+
+## Testing independence
+
+`hrank_dcov_test()` computes the distance covariance of the center-outward
+ranks of the two samples:
+
+```{r test}
+set.seed(2)
+n <- 300
+x <- matrix(rnorm(2 * n), ncol = 2)
+y <- cbind(cos(2 * x[, 1]), x[, 2]^2) + matrix(rnorm(2 * n, sd = 0.5), ncol = 2)
+hrank_dcov_test(x, y)
+```
+
+The dependence here is non-monotone and invisible to correlation
+coefficients, yet it is detected.  The test is valid however heavy the tails
+are, here with Cauchy-distributed observations:
+
+```{r cauchy}
+x_cauchy <- matrix(rt(2 * n, df = 1), ncol = 2)
+y_cauchy <- matrix(rt(3 * n, df = 1), ncol = 3)
+hrank_dcov_test(x_cauchy, y_cauchy)
+```
+
+### Score functions
+
+Following Shi, Hallin, Drton and Han (2022), the ranks can be transformed by
+a score function $J$ before computing the distance covariance, which replaces
+$F_\pm^{(n)}(X_i)$ by $J(\|F_\pm^{(n)}(X_i)\|) S_\pm^{(n)}(X_i)$.  The
+built-in choices are `"rank"` (Wilcoxon scores, $J(u) = u$, the default),
+`"normal"` (van der Waerden scores, $J(u) = \sqrt{F^{-1}_{\chi^2_d}(u)}$)
+and `"sign"` ($J(u) = 1$).  Normal scores often give more power for
+light-tailed data:
+
+```{r scores}
+hrank_dcov_test(x, y, score = "normal")$p.value
+hrank_dcov_test(x, y, score = "sign")$p.value
+```
+
+Any nonnegative function on $[0, 1)$ can be supplied as well, for example
+`score = function(u) u^2`.  Use `co_scores()` to obtain the scored ranks.
+
+## The null distribution
+
+Under independence, the two rank vectors are independent and uniformly
+distributed over the permutations of their grids.  The null distribution of
+the statistic therefore depends only on $n$, $p$, $q$, the grids and the score
+function.  Two ways of computing it are available.
+
+* `method = "permutation"` (default) draws `B` random permutations.  The
+  resulting p-value is exact in finite samples.
+* `method = "asymptotic"` uses the limiting distribution
+  $\sum_{k,l} \lambda_k \mu_l (\xi_{kl}^2 - 1)$ with independent standard
+  normal $\xi_{kl}$ (Shi, Drton and Han, 2022).  The weights are the
+  eigenvalues of the limiting kernel, computed by reducing the rotation
+  invariant eigenvalue problem to one-dimensional radial integral equations
+  via spherical harmonics; the tail probabilities are then obtained by
+  Imhof's method, without any resampling.  The resulting critical values
+  agree with those tabulated by Shi, Drton and Han (2022).  In moderate
+  samples the test tends to be slightly conservative.
+
+```{r null}
+set.seed(3)
+perm <- hrank_dcov_null(n, 2, 2, B = 1999)
+asym <- hrank_dcov_null(n, 2, 2, method = "asymptotic")
+rbind(permutation = quantile(perm), asymptotic = quantile(asym))
+```
+
+Because the null distribution does not depend on the data, it only needs to
+be computed once for any number of tests with the same $n$, $p$ and $q$.
+This is useful in simulation studies.  For example, the empirical size of
+the test with Cauchy data and 200 replications:
+
+```{r size}
+set.seed(4)
+pvals <- replicate(200, {
+  x <- matrix(rt(2 * n, df = 1), ncol = 2)
+  y <- matrix(rt(2 * n, df = 1), ncol = 2)
+  hrank_dcov_test(x, y, null = asym)$p.value
+})
+mean(pvals <= 0.05)
+```
+
+The object returned by `hrank_dcov_test()` also contains the null
+distribution it used, in its `null` component.
+
+## Choice of the grid
+
+By default, the grid has $n_R = \lfloor n^{1/4} \rfloor$ radii, as in Shi,
+Drton and Han (2022), and its directions are deterministic: equally spaced on
+the circle when $d = 2$, and given by a low-discrepancy sequence projected
+onto the sphere when $d \ge 3$.  With `type = "random"`, the directions are
+drawn uniformly at random instead.  Any data-independent choice gives a
+distribution-free test; the number of radii can be changed with `n_R`.
+
+```{r grid-options}
+hrank_dcov(x, y, n_R = 5)
+hrank_dcov(x, y, n_R = c(5, 10))
+```
+
+## References
+
+Hallin, M., del Barrio, E., Cuesta-Albertos, J. and Matrán, C. (2021).
+Distribution and quantile functions, ranks and signs in dimension d: A measure
+transportation approach. *The Annals of Statistics*, 49(2), 1139--1165.
+
+Shi, H., Drton, M. and Han, F. (2022). Distribution-free consistent
+independence tests via center-outward ranks and signs. *Journal of the
+American Statistical Association*, 117(537), 395--410.
+
+Shi, H., Hallin, M., Drton, M. and Han, F. (2022). On universally consistent
+and fully distribution-free rank tests of vector independence. *The Annals of
+Statistics*, 50(4), 1933--1959.
+
+Székely, G. J., Rizzo, M. L. and Bakirov, N. K. (2007). Measuring and testing
+dependence by correlation of distances. *The Annals of Statistics*, 35(6),
+2769--2794.
